@@ -1,0 +1,11 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+Thumbs.db
+
+# Download locally after reviewing the upstream model terms.
+shape_predictor_68_face_landmarks.dat
+*.dat.bz2
