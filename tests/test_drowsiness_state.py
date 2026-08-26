@@ -55,6 +55,17 @@ class DrowsinessTrackerTests(unittest.TestCase):
         tracker.reset_partial()
         self.assertNotIn("blink", tracker.update(0.30, 0.30, 0.3))
 
+    def test_rejects_non_monotonic_updates(self) -> None:
+        tracker = self.new_tracker()
+        tracker.update(0.30, 0.30, 1.0)
+        with self.assertRaisesRegex(ValueError, "monotonic"):
+            tracker.update(0.30, 0.30, 0.9)
+
+    def test_rejects_invalid_blink_rate_window(self) -> None:
+        tracker = self.new_tracker()
+        with self.assertRaisesRegex(ValueError, "positive"):
+            tracker.roll_blink_rate(1.0, window_seconds=0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

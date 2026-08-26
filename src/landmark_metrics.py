@@ -9,6 +9,8 @@ def _points(value: np.ndarray, expected: int, label: str) -> np.ndarray:
     points = np.asarray(value, dtype=float)
     if points.shape != (expected, 2):
         raise ValueError(f"{label} must have shape ({expected}, 2), got {points.shape}")
+    if not np.isfinite(points).all():
+        raise ValueError(f"{label} landmarks must contain only finite values")
     return points
 
 

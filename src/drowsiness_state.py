@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 
 
 @dataclass
@@ -20,6 +21,7 @@ class DrowsinessTracker:
     mouth_opened_at: float | None = None
     fatigue_reported: bool = False
     yawn_reported: bool = False
+    last_updated_at: float | None = None
 
     def __post_init__(self) -> None:
         if self.ear_threshold <= 0 or self.mar_threshold <= 0:
@@ -31,6 +33,11 @@ class DrowsinessTracker:
 
     def update(self, ear: float, mar: float, now: float) -> set[str]:
         """Update tracking and return newly triggered event names."""
+        if not all(isfinite(value) for value in (ear, mar, now)):
+            raise ValueError("EAR, MAR, and timestamp values must be finite")
+        if self.last_updated_at is not None and now < self.last_updated_at:
+            raise ValueError("timestamps must be monotonic")
+        self.last_updated_at = now
         events: set[str] = set()
 
         if ear < self.ear_threshold:
@@ -63,6 +70,12 @@ class DrowsinessTracker:
 
     def roll_blink_rate(self, now: float, window_seconds: float = 60.0) -> float | None:
         """Return blinks per minute when a window completes, then start a new window."""
+        if not isfinite(now) or not isfinite(window_seconds):
+            raise ValueError("timestamp and blink-rate window must be finite")
+        if window_seconds <= 0:
+            raise ValueError("blink-rate window must be positive")
+        if now < self.window_started_at:
+            raise ValueError("timestamp cannot precede the blink-rate window")
         elapsed = now - self.window_started_at
         if elapsed < window_seconds:
             return None

@@ -22,6 +22,20 @@ class LandmarkMetricsTests(unittest.TestCase):
         mouth[15], mouth[17] = (5, 2), (5, -2)
         self.assertAlmostEqual(mouth_aspect_ratio(mouth), 1.0)
 
+    def test_rejects_invalid_landmark_shape(self) -> None:
+        with self.assertRaisesRegex(ValueError, "shape"):
+            eye_aspect_ratio(np.zeros((5, 2)))
+
+    def test_rejects_non_finite_landmarks(self) -> None:
+        eye = np.zeros((6, 2))
+        eye[0, 0] = np.nan
+        with self.assertRaisesRegex(ValueError, "finite"):
+            eye_aspect_ratio(eye)
+
+    def test_rejects_zero_horizontal_distance(self) -> None:
+        with self.assertRaisesRegex(ValueError, "horizontal"):
+            eye_aspect_ratio(np.zeros((6, 2)))
+
 
 if __name__ == "__main__":
     unittest.main()
