@@ -1,4 +1,4 @@
-"""Time- and frame-based state for blink, fatigue, and yawn events."""
+"""Time- and frame-based state for blink, sleep, and yawn events."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ class DrowsinessTracker:
     ear_threshold: float = 0.23
     minimum_blink_frames: int = 3
     fatigue_seconds: float = 1.0
+    sleep_seconds: float = 3.0
+    unresponsive_seconds: float = 6.0
     mar_threshold: float = 0.75
     yawn_seconds: float = 0.8
     total_blinks: int = 0
@@ -20,6 +22,8 @@ class DrowsinessTracker:
     eyes_closed_at: float | None = None
     mouth_opened_at: float | None = None
     fatigue_reported: bool = False
+    sleep_reported: bool = False
+    unresponsive_reported: bool = False
     yawn_reported: bool = False
     last_updated_at: float | None = None
 
@@ -30,6 +34,14 @@ class DrowsinessTracker:
             raise ValueError("minimum_blink_frames must be at least 1")
         if self.fatigue_seconds <= 0 or self.yawn_seconds <= 0:
             raise ValueError("event durations must be positive")
+        if not self.fatigue_seconds < self.sleep_seconds < self.unresponsive_seconds:
+            raise ValueError("eye-closure durations must increase from microsleep to unresponsive")
+
+    def set_thresholds(self, ear_threshold: float, mar_threshold: float) -> None:
+        if not all(isfinite(value) and value > 0 for value in (ear_threshold, mar_threshold)):
+            raise ValueError("EAR and MAR thresholds must be positive and finite")
+        self.ear_threshold = ear_threshold
+        self.mar_threshold = mar_threshold
 
     def update(self, ear: float, mar: float, now: float) -> set[str]:
         """Update tracking and return newly triggered event names."""
@@ -44,8 +56,18 @@ class DrowsinessTracker:
             if self.eyes_closed_at is None:
                 self.eyes_closed_at = now
             self.closed_frames += 1
-            if not self.fatigue_reported and now - self.eyes_closed_at >= self.fatigue_seconds:
-                events.add("fatigue")
+            duration = now - self.eyes_closed_at
+            if not self.unresponsive_reported and duration >= self.unresponsive_seconds:
+                events.add("unresponsive")
+                self.fatigue_reported = True
+                self.sleep_reported = True
+                self.unresponsive_reported = True
+            elif not self.sleep_reported and duration >= self.sleep_seconds:
+                events.add("sleep")
+                self.fatigue_reported = True
+                self.sleep_reported = True
+            elif not self.fatigue_reported and duration >= self.fatigue_seconds:
+                events.add("microsleep")
                 self.fatigue_reported = True
         else:
             if self.closed_frames >= self.minimum_blink_frames:
@@ -55,6 +77,8 @@ class DrowsinessTracker:
             self.closed_frames = 0
             self.eyes_closed_at = None
             self.fatigue_reported = False
+            self.sleep_reported = False
+            self.unresponsive_reported = False
 
         if mar > self.mar_threshold:
             if self.mouth_opened_at is None:
@@ -90,4 +114,6 @@ class DrowsinessTracker:
         self.eyes_closed_at = None
         self.mouth_opened_at = None
         self.fatigue_reported = False
+        self.sleep_reported = False
+        self.unresponsive_reported = False
         self.yawn_reported = False

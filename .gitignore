@@ -12,3 +12,6 @@ shape_predictor_68_face_landmarks.dat
 
 # Local webcam screenshots may contain personal images.
 captures/
+
+# Driver-state logs contain behavioural observations from local sessions.
+logs/

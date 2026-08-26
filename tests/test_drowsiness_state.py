@@ -27,11 +27,18 @@ class DrowsinessTrackerTests(unittest.TestCase):
         self.assertIn("blink", events)
         self.assertEqual(tracker.total_blinks, 1)
 
-    def test_long_closure_reports_fatigue_once(self) -> None:
+    def test_long_closure_reports_microsleep_once(self) -> None:
         tracker = self.new_tracker()
         tracker.update(0.20, 0.30, 0.0)
-        self.assertIn("fatigue", tracker.update(0.20, 0.30, 1.1))
-        self.assertNotIn("fatigue", tracker.update(0.20, 0.30, 1.2))
+        self.assertIn("microsleep", tracker.update(0.20, 0.30, 1.1))
+        self.assertNotIn("microsleep", tracker.update(0.20, 0.30, 1.2))
+
+    def test_escalates_closure_to_sleep_and_unresponsive(self) -> None:
+        tracker = self.new_tracker()
+        tracker.update(0.20, 0.30, 0.0)
+        self.assertIn("microsleep", tracker.update(0.20, 0.30, 1.1))
+        self.assertIn("sleep", tracker.update(0.20, 0.30, 3.1))
+        self.assertIn("unresponsive", tracker.update(0.20, 0.30, 6.1))
 
     def test_yawn_reports_once_until_mouth_closes(self) -> None:
         tracker = self.new_tracker()
