@@ -10,14 +10,14 @@
 ## 功能
 
 - 使用 Dlib 68 點臉部特徵模型定位眼睛與嘴巴。
-- 啟動時以 10 秒正面中性表情，校正個人 EAR／MAR 與頭部正面角度。
+- 啟動時以 10 秒正面臉部，校正個人 EAR／MAR 與頭部正面角度。
 - 以 60 秒滑動視窗計算「有效觀測時間」內的閉眼比例（PERCLOS）。
 - 以頭部 pitch／yaw 作為離路注意力代理，偵測連續與 30 秒累積分心。
-- 以完整的「閉眼 → 睜眼」週期計算一次眨眼，避免每幀重複累計。
+- 以完整的「閉眼 → 睜眼」週期計算一次眨眼，避免每幀重複計。
 - 以單調時鐘計算連續閉眼及張嘴時間，不依賴攝影機回報的 FPS。
 - 將閉眼事件分成 `MICROSLEEP`、`SLEEP` 與 `UNRESPONSIVE`。
 - 每 0.2 秒將量測值與狀態寫入本機 CSV，供後續驗證誤報率與警示延遲。
-- 警示音具冷卻時間，避免每一幀重複播放。
+- 警示音有cd時間，避免每幀重複播放。
 - 短暫漏偵測人臉時保留狀態，超過容許時間才重設未完成事件。
 - 無人臉時顯示 `NO FACE`，並選取畫面中最大的臉進行分析。
 
@@ -28,16 +28,16 @@ OpenCV 視窗會在臉部影像上描繪雙眼與嘴巴輪廓，左上角顯示�
 | 顯示項目 | 說明 |
 | --- | --- |
 | `Blinks` | 程式啟動後的完整眨眼總數 |
-| `EAR` | 目前雙眼 EAR 平均值；越低代表眼睛越閉合 |
-| `MAR` | 目前嘴巴 MAR；越高代表嘴巴張得越開 |
+| `EAR` | 目前雙眼 EAR 平均值；越低代表眼睛越閉合(除非你是小剛) |
+| `MAR` | 目前嘴巴 MAR；越高代表嘴巴張越開 |
 | `PERCLOS` | 滑動視窗內閉眼時間占有效觀測時間的比例 |
-| `Head P/Y` | 相對於個人正面基準的 pitch／yaw 角度；目前是頭部方向，不是精確眼球視線 |
-| `Last BPM` | 最近一個完整時間視窗的每分鐘眨眼次數 |
+| `Head P/Y` | 相對於個人正面基準的 pitch／yaw 角度；目前是頭部方向，不是精確眼球 |
+| `Last BPM` | 最近一個完整時間窗的每min眨眼次數 |
 | 狀態列 | `CALIBRATING`、`MONITORING`、`DISTRACTED`、`DROWSY`、`MICROSLEEP`、`SLEEP`、`UNRESPONSIVE` 或 `NO FACE` 等狀態 |
 
-按 `s` 會將包含輪廓、數值與狀態的當前畫面存到 `captures/`；按 `q` 可安全關閉視窗、釋放攝影機並停止音效。截圖可能包含個人影像，因此 `captures/` 已排除於 Git 版本控制之外。
+按 `s` 會將包含輪廓、數值與狀態的當前畫面存到 `captures/`；按 `q` 可安全關閉視窗、釋放攝影機並停止音效。截圖包含個人影像，因此 `captures/` 已排除於 Git 版本控制。
 
-啟動後請正對鏡頭、自然睜眼並閉嘴，保持頭部靜止直到 `CALIBRATION COMPLETE`。若顯示 `CALIBRATION: NO FACE`，請改善光線、減少晃動並確認臉部完整入鏡。
+啟動後請正對鏡頭、自然睜眼並閉嘴，保持頭部靜止直到 `CALIBRATION COMPLETE`。若顯示 `CALIBRATION: NO FACE`，請改善光線、減少晃動並確認臉部入鏡。
 
 ## 程式流程圖
 
@@ -47,17 +47,17 @@ OpenCV 視窗會在臉部影像上描繪雙眼與嘴巴輪廓，左上角顯示�
 flowchart TD
     A([啟動程式]) --> B[解析並驗證命令列參數]
     B --> C[建立偵測器、攝影機、音效與 CSV 紀錄]
-    C --> D[正面中性表情個人化校正]
+    C --> D[正面臉部校正]
     D --> E[讀取攝影機影格]
     E --> F{讀取成功?}
     F -- 否 --> Y[釋放攝影機與音效]
     F -- 是 --> G[轉為灰階並偵測人臉]
-    G --> H{偵測到人臉?}
+    G --> H{是否偵測到人臉}
     H -- 是 --> I[選取最大的臉並取得 68 點特徵]
     I --> J[計算 EAR、MAR 與頭部姿態]
     J --> K[更新眨眼、PERCLOS、閉眼與張嘴時間]
     K --> L[更新連續及 30 秒累積離路時間]
-    L --> M{產生分心或疲勞事件?}
+    L --> M{產生分心或疲勞事件}
     M -- 是 --> N[依風險分級狀態並播放警示]
     M -- 否 --> S[保留監測狀態]
     H -- 否 --> O[顯示 NO FACE 並計算漏偵測時間]
@@ -69,7 +69,7 @@ flowchart TD
     Q --> T
     R --> T
     T --> V[繪製輪廓、數值與狀態]
-    V --> W{按下按鍵?}
+    V --> W{按下按鍵}
     W -- s --> AA[將介面截圖存入 captures]
     AA --> E
     W -- q --> Y
@@ -82,19 +82,19 @@ flowchart TD
 ```text
 .
 ├── .github/workflows/     # GitHub Actions 單元測試
-├── archive/original/      # 2024 年原始 eyes_mouths.py
-├── assets/                # 原型使用的警示音
+├── archive/original/      # 原始 eyes_mouths.py
+├── assets/                # 原使用的警示音
 ├── src/
 │   ├── drowsiness_monitor.py  # 攝影機、介面與整體流程
-│   ├── drowsiness_state.py    # 眨眼、睡眠、哈欠狀態機
+│   ├── drowsiness_state.py    # 眨眼、闔眼、哈欠狀態
 │   ├── head_pose.py           # 頭部 pitch／yaw／roll 估計
-│   ├── landmark_metrics.py    # EAR 與 MAR 幾何計算
-│   ├── temporal_metrics.py    # PERCLOS、校正與累積分心
+│   ├── landmark_metrics.py    # EAR 與 MAR 計算
+│   ├── temporal_metrics.py    # PERCLOS、校正與累積
 │   └── session_log.py         # 限速取樣的 CSV 工作階段紀錄
-└── tests/                  # 不需要攝影機即可執行的單元測試
+└── tests/                  # 不需攝影機即可執行的單元測試
 ```
 
-原始 `eyes_mouths.py` 保留在 `archive/original/`，實際執行請使用 `src/` 內的整理版。整理版修正了原始程式重複計算眨眼／哈欠、依賴不可靠攝影機 FPS，以及警示音每幀重播等問題。
+原始 `eyes_mouths.py` 保留在 `archive/original/`，實際執行請使用 `src/` 內的整理版。整理版修正原始程式重複計算眨眼／哈欠、依賴不可靠攝影機 FPS，以及警示音每幀重播等問題。
 
 ## 安裝
 
