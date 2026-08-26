@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import time
+from datetime import datetime
 from math import isfinite
 from pathlib import Path
 
@@ -15,6 +16,7 @@ RIGHT_EYE = slice(36, 42)
 LEFT_EYE = slice(42, 48)
 MOUTH = slice(48, 68)
 DEFAULT_ALERT = Path(__file__).resolve().parents[1] / "assets" / "alert.wav"
+DEFAULT_SCREENSHOT_DIR = Path(__file__).resolve().parents[1] / "captures"
 
 
 def positive_float(value: str) -> float:
@@ -76,6 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--shape-predictor", required=True, type=Path)
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--alert-sound", type=Path, default=DEFAULT_ALERT)
+    parser.add_argument("--screenshot-dir", type=Path, default=DEFAULT_SCREENSHOT_DIR)
     parser.add_argument("--no-audio", action="store_true")
     parser.add_argument("--alert-cooldown", type=non_negative_float, default=3.0)
     parser.add_argument("--ear-threshold", type=positive_float, default=0.23)
@@ -197,7 +200,17 @@ def run(args: argparse.Namespace) -> None:
             cv2.putText(frame, status, (10, 155), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
 
             cv2.imshow("Driver Drowsiness Detection", frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("s"):
+                args.screenshot_dir.mkdir(parents=True, exist_ok=True)
+                screenshot = args.screenshot_dir / f"drowsiness-demo-{datetime.now():%Y%m%d-%H%M%S}.png"
+                encoded, image = cv2.imencode(".png", frame)
+                if encoded:
+                    image.tofile(screenshot)
+                    print(f"[INFO] Screenshot saved: {screenshot.resolve()}")
+                else:
+                    print("[WARN] Screenshot could not be encoded.")
+            elif key == ord("q"):
                 break
     finally:
         camera.release()

@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from drowsiness_monitor import build_parser
+from drowsiness_monitor import DEFAULT_SCREENSHOT_DIR, build_parser
 
 
 class ArgumentParserTests(unittest.TestCase):
@@ -16,6 +16,9 @@ class ArgumentParserTests(unittest.TestCase):
 
     def test_default_face_loss_grace_period(self) -> None:
         self.assertEqual(self.parse().face_loss_grace_seconds, 0.25)
+
+    def test_default_screenshot_directory(self) -> None:
+        self.assertEqual(self.parse().screenshot_dir, DEFAULT_SCREENSHOT_DIR)
 
     def test_accepts_disabled_face_loss_grace_period(self) -> None:
         self.assertEqual(

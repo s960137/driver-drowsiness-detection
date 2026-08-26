@@ -9,3 +9,6 @@ Thumbs.db
 # Download locally after reviewing the upstream model terms.
 shape_predictor_68_face_landmarks.dat
 *.dat.bz2
+
+# Local webcam screenshots may contain personal images.
+captures/

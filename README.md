@@ -29,7 +29,7 @@ OpenCV 視窗會在臉部影像上描繪雙眼與嘴巴輪廓，左上角顯示�
 | `Last BPM` | 最近一個完整時間視窗的每分鐘眨眼次數 |
 | 狀態列 | `MONITORING`、`NO FACE`、`LONG EYE CLOSURE`、`YAWN DETECTED` 或 `HIGH BLINK RATE` |
 
-按 `q` 可安全關閉視窗、釋放攝影機並停止音效。
+按 `s` 會將包含輪廓、數值與狀態的當前畫面存到 `captures/`；按 `q` 可安全關閉視窗、釋放攝影機並停止音效。截圖可能包含個人影像，因此 `captures/` 已排除於 Git 版本控制之外。
 
 ## 程式流程圖
 
@@ -64,9 +64,11 @@ flowchart TD
     T -- 是 --> U[顯示 HIGH BLINK RATE 並警示]
     T -- 否 --> V[繪製輪廓、數值與狀態]
     U --> V
-    V --> W{按下 q?}
-    W -- 否 --> E
-    W -- 是 --> Y
+    V --> W{按下按鍵?}
+    W -- s --> AA[將介面截圖存入 captures]
+    AA --> E
+    W -- q --> Y
+    W -- 其他 --> E
     Y --> Z([結束])
 ```
 
@@ -123,6 +125,7 @@ python src/drowsiness_monitor.py --shape-predictor shape_predictor_68_face_landm
 | 參數 | 預設值 | 用途 |
 | --- | ---: | --- |
 | `--camera-index` | `0` | 攝影機編號 |
+| `--screenshot-dir` | `captures/` | 按 `s` 時儲存介面截圖的位置 |
 | `--ear-threshold` | `0.23` | 低於此值視為閉眼 |
 | `--minimum-blink-frames` | `3` | 成立一次眨眼所需的最少閉眼影格 |
 | `--fatigue-seconds` | `1.0` | 連續閉眼警示時間 |
