@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/s960137/driver-drowsiness-detection/actions/workflows/tests.yml/badge.svg)](https://github.com/s960137/driver-drowsiness-detection/actions/workflows/tests.yml)
 
-以攝影機即時偵測駕駛狀態，結合眼睛長寬比（EAR）、嘴巴長寬比（MAR）、時間加權 PERCLOS、頭部姿態與眨眼率，示範疲勞、微睡眠、睡眠、無反應及離路注意力警示。
+以攝影機即時偵測駕駛狀態，結合眼睛長寬比（EAR）、嘴巴長寬比（MAR）、時間加權 PERCLOS、頭部姿態與眨眼率，示範疲勞、闔眼、睡著無反應警示。
 
 > [!WARNING]
 > 本專案僅研究與教學，尚未經過真實車輛或安全場景驗證，不能取代駕駛注意力，也不應作為防止事故的依據。
