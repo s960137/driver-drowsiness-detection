@@ -145,7 +145,7 @@ python -m unittest discover -s tests -v
 
 每次推送到 `main` 或建立 Pull Request 時，GitHub Actions 也會自動執行不需要攝影機與 Dlib 的單元測試。
 
-## 已完成與後續可改善方向
+## 已完成與後續改善方向
 
 本次整理已加入輸入資料與命令列參數驗證、短暫人臉漏偵測容錯、`NO FACE` 介面狀態、更多單元測試及 GitHub Actions。後續建議依序進行：
 
@@ -153,11 +153,10 @@ python -m unittest discover -s tests -v
 2. 加入頭部姿態、視線偏移及 PERCLOS 等特徵，降低固定門檻造成的誤報。
 3. 以標註影片評估 precision、recall、F1 與警示延遲，而不只測試程式邏輯。
 4. 改用可重新散布且授權清楚的臉部特徵模型，並評估 MediaPipe 等較易安裝的替代方案。
-5. 在取得警示音的所有權或再散布授權後，再公開 `assets/alert.wav`。
 
 ## 發布、隱私與授權
 
-- 請勿提交 `.venv`、本機編譯的 Dlib、平台專用 wheel 或臉部特徵模型。
+- 勿提交 `.venv`、本機編譯的 Dlib、平台專用 wheel 或臉部特徵模型。
 - 程式只在本機處理攝影機影格，不會主動傳送或保存影像。
 - EAR 方法參考 Soukupová 與 Čech（2016）；原始原型改寫自 Adrian Rosebrock 的 PyImageSearch 眨眼偵測教學，詳見 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 - 本專案尚未選定整體開源授權；在加入授權檔前，專案程式與媒體仍受作者預設著作權保護，第三方元件則各自依其授權條款使用。
