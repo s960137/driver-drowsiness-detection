@@ -2,6 +2,10 @@
 
 [![Tests](https://github.com/s960137/driver-drowsiness-detection/actions/workflows/tests.yml/badge.svg)](https://github.com/s960137/driver-drowsiness-detection/actions/workflows/tests.yml)
 
+[開啟靜態互動展示](https://s960137.github.io/driver-drowsiness-detection/) · [查看展示頁原始檔](docs/index.html)
+
+> 展示頁使用模擬情境呈現 EAR、MAR、PERCLOS 與頭部姿態，不會存取攝影機；啟用 GitHub Pages 時請將來源設為 `main` 分支的 `/docs`。
+
 以攝影機即時偵測駕駛狀態，結合眼睛長寬比（EAR）、嘴巴長寬比（MAR）、時間加權 PERCLOS、頭部姿態與眨眼率，示範疲勞、闔眼、睡著無反應警示。
 
 > [!WARNING]
@@ -84,6 +88,7 @@ flowchart TD
 ├── .github/workflows/     # GitHub Actions 單元測試
 ├── archive/original/      # 原始 eyes_mouths.py
 ├── assets/                # 原使用的警示音
+├── docs/                  # GitHub Pages 靜態互動展示
 ├── src/
 │   ├── drowsiness_monitor.py  # 攝影機、介面與整體流程
 │   ├── drowsiness_state.py    # 眨眼、闔眼、哈欠狀態
