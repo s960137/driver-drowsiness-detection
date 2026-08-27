@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/s960137/driver-drowsiness-detection/actions/workflows/tests.yml/badge.svg)](https://github.com/s960137/driver-drowsiness-detection/actions/workflows/tests.yml)
 
-[開啟靜態互動展示](https://s960137.github.io/driver-drowsiness-detection/) · [查看展示頁原始檔](docs/index.html)
+[開啟demo頁面](https://s960137.github.io/driver-drowsiness-detection/) · [查看demo頁原始檔](docs/index.html)
 
 > 展示頁使用模擬情境呈現 EAR、MAR、PERCLOS 與頭部姿態，不會存取攝影機；啟用 GitHub Pages 時請將來源設為 `main` 分支的 `/docs`。
 
