@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Driver Drowsiness Detection research prototype showcase: EAR, MAR, PERCLOS, head pose, calibration, testing, and safety limitations.">
+  <title>Driver Drowsiness Detection｜Static Showcase</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071018;
+      --panel: #0d1924;
+      --panel-2: #122230;
+      --line: rgba(162, 205, 228, .16);
+      --text: #eef8ff;
+      --muted: #9db2c1;
+      --cyan: #54d7e7;
+      --green: #69e2a1;
+      --amber: #ffca72;
+      --red: #ff7d82;
+      --shadow: 0 28px 70px rgba(0, 0, 0, .34);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 12% -8%, rgba(84, 215, 231, .16), transparent 32rem),
+        radial-gradient(circle at 92% 18%, rgba(105, 226, 161, .1), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+      line-height: 1.65;
+    }
+
+    a { color: inherit; }
+    button { font: inherit; }
+    .wrap { width: min(1160px, calc(100% - 36px)); margin: 0 auto; }
+
+    .notice {
+      border-bottom: 1px solid var(--line);
+      background: rgba(5, 14, 21, .86);
+      color: #c6d6df;
+      font-size: .84rem;
+      text-align: center;
+      padding: 9px 18px;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 22px 0;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -.02em; }
+    .mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(145deg, var(--cyan), #2678a3);
+      color: #06131c;
+      box-shadow: 0 12px 30px rgba(84, 215, 231, .2);
+    }
+
+    .nav-links { display: flex; gap: 22px; align-items: center; color: var(--muted); font-size: .92rem; }
+    .nav-links a { text-decoration: none; }
+    .nav-links a:hover { color: var(--text); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: .92fr 1.08fr;
+      gap: 58px;
+      align-items: center;
+      padding: 62px 0 78px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--cyan);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before { content: ""; width: 28px; height: 1px; background: currentColor; }
+    h1 { margin: 16px 0 20px; font-size: clamp(2.8rem, 6vw, 5.6rem); line-height: .94; letter-spacing: -.065em; }
+    h1 span { display: block; color: var(--cyan); }
+    .hero-copy { max-width: 610px; color: var(--muted); font-size: 1.06rem; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.035);
+      text-decoration: none;
+      font-weight: 750;
+    }
+    .button.primary { background: var(--cyan); border-color: var(--cyan); color: #06131c; }
+    .button:hover { transform: translateY(-1px); }
+
+    .quick-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 36px; }
+    .quick-facts div { border-left: 2px solid var(--line); padding-left: 12px; }
+    .quick-facts strong { display: block; font-size: 1.15rem; }
+    .quick-facts span { color: var(--muted); font-size: .76rem; }
+
+    .monitor {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      overflow: hidden;
+      background: #08131c;
+      box-shadow: var(--shadow);
+    }
+
+    .monitor-head { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; background: #101f2b; border-bottom: 1px solid var(--line); }
+    .lights { display: flex; gap: 7px; }
+    .lights i { width: 8px; height: 8px; border-radius: 50%; background: #324756; }
+    .lights i:first-child { background: var(--red); }
+    .monitor-head span { color: var(--muted); font-size: .72rem; letter-spacing: .08em; }
+
+    .screen { position: relative; min-height: 370px; padding: 20px; overflow: hidden; background: linear-gradient(145deg, #0a1924, #071018); }
+    .grid-lines { position: absolute; inset: 0; opacity: .18; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 36px 36px; }
+    .face {
+      position: absolute;
+      width: 180px;
+      height: 226px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid rgba(84,215,231,.62);
+      border-radius: 46% 46% 44% 44%;
+      box-shadow: 0 0 45px rgba(84,215,231,.1);
+      transition: opacity .25s, transform .25s;
+    }
+    .face::before, .face::after { content: ""; position: absolute; top: 84px; width: 42px; height: 8px; border: 2px solid var(--cyan); border-radius: 50%; transition: height .25s; }
+    .face::before { left: 28px; }
+    .face::after { right: 28px; }
+    .mouth { position: absolute; left: 50%; bottom: 42px; width: 52px; height: 9px; transform: translateX(-50%); border-bottom: 2px solid var(--cyan); border-radius: 50%; transition: height .25s; }
+    .pose-line { position: absolute; width: 86px; height: 1px; left: 50%; top: 50%; background: var(--cyan); transform-origin: left center; opacity: .65; }
+
+    .hud { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr auto; gap: 16px; }
+    .state-label { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-size: .82rem; font-weight: 850; letter-spacing: .08em; }
+    .state-label::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 18px currentColor; }
+    .hud-time { color: var(--muted); font: 700 .76rem ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 185px; }
+    .metric { padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(4, 12, 18, .72); backdrop-filter: blur(6px); }
+    .metric span { display: block; color: var(--muted); font-size: .62rem; letter-spacing: .08em; }
+    .metric strong { font: 800 .98rem ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+    .scenario-bar { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); background: #0c1923; }
+    .scenario-bar button { flex: 1; padding: 9px 8px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; font-size: .72rem; }
+    .scenario-bar button.active { color: #06131c; background: var(--cyan); border-color: var(--cyan); font-weight: 800; }
+
+    main section { padding: 84px 0; }
+    .section-head { display: grid; grid-template-columns: .72fr 1.28fr; gap: 42px; align-items: end; margin-bottom: 34px; }
+    h2 { margin: 10px 0 0; font-size: clamp(2rem, 4vw, 3.55rem); line-height: 1.02; letter-spacing: -.045em; }
+    .section-head p { color: var(--muted); margin: 0; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .card { min-height: 220px; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(145deg, rgba(18,34,48,.84), rgba(11,24,34,.84)); }
+    .card .num { color: var(--cyan); font: 800 .76rem ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .card h3 { margin: 28px 0 9px; font-size: 1.18rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); align-items: stretch; gap: 10px; }
+    .step { position: relative; padding: 20px 17px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    .step:not(:last-child)::after { content: "→"; position: absolute; right: -18px; top: 50%; transform: translateY(-50%); color: var(--cyan); z-index: 2; }
+    .step small { color: var(--cyan); font-weight: 800; }
+    .step strong { display: block; margin: 8px 0 5px; }
+    .step span { color: var(--muted); font-size: .78rem; }
+
+    .evidence { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+    .evidence-panel { padding: 30px; border: 1px solid var(--line); border-radius: 20px; background: var(--panel); }
+    .checklist { display: grid; gap: 13px; margin-top: 24px; }
+    .check { display: grid; grid-template-columns: 24px 1fr; gap: 12px; align-items: start; color: #d9e8ef; }
+    .check::before { content: "✓"; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: rgba(105,226,161,.12); color: var(--green); font-weight: 900; }
+    .check span { color: var(--muted); font-size: .84rem; display: block; }
+    .result-stack { display: grid; gap: 10px; margin-top: 20px; }
+    .result { display: flex; justify-content: space-between; gap: 20px; padding: 15px; border-radius: 12px; background: var(--panel-2); }
+    .result span { color: var(--muted); }
+    .result strong { color: var(--green); }
+
+    .limits { border: 1px solid rgba(255,202,114,.28); background: rgba(255,202,114,.055); border-radius: 20px; padding: 30px; }
+    .limits h2 { font-size: 2rem; }
+    .limits ul { margin: 20px 0 0; padding-left: 20px; color: var(--muted); }
+    .limits li + li { margin-top: 8px; }
+
+    footer { padding: 44px 0 56px; border-top: 1px solid var(--line); color: var(--muted); }
+    .footer-inner { display: flex; justify-content: space-between; gap: 24px; align-items: center; }
+    .footer-inner strong { color: var(--text); }
+
+    @media (max-width: 880px) {
+      .nav-links a:not(.button) { display: none; }
+      .hero, .section-head, .evidence { grid-template-columns: 1fr; }
+      .hero { padding-top: 32px; gap: 38px; }
+      .card-grid { grid-template-columns: repeat(2, 1fr); }
+      .pipeline { grid-template-columns: 1fr; }
+      .step:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -20px; }
+    }
+
+    @media (max-width: 580px) {
+      .wrap { width: min(100% - 24px, 1160px); }
+      h1 { font-size: 3.1rem; }
+      .quick-facts, .card-grid { grid-template-columns: 1fr; }
+      .screen { min-height: 340px; }
+      .face { width: 140px; height: 190px; }
+      .face::before, .face::after { top: 69px; width: 32px; }
+      .face::before { left: 22px; }
+      .face::after { right: 22px; }
+      .metrics { width: 155px; }
+      .scenario-bar { overflow-x: auto; }
+      .scenario-bar button { min-width: 92px; }
+      .footer-inner { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="notice">靜態互動展示｜數值為模擬情境，不會存取攝影機，也不代表安全或醫療認證</div>
+
+  <header class="wrap">
+    <nav>
+      <div class="brand"><span class="mark">DD</span> Driver Monitor</div>
+      <div class="nav-links">
+        <a href="#signals">Signals</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#evidence">Evidence</a>
+        <a class="button" href="https://github.com/s960137/driver-drowsiness-detection">GitHub ↗</a>
+      </div>
+    </nav>
+
+    <div class="hero">
+      <div>
+        <span class="eyebrow">Computer vision research prototype</span>
+        <h1>Driver <span>Drowsiness</span> Detection</h1>
+        <p class="hero-copy">結合臉部特徵、個人化校正與時間加權指標，示範疲勞、長時間閉眼及離路注意力警示。專案著重可測試的狀態邏輯，而非只在每一幀套用固定門檻。</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/s960137/driver-drowsiness-detection">查看原始碼</a>
+          <a class="button" href="https://github.com/s960137/driver-drowsiness-detection#測試">查看測試說明</a>
+        </div>
+        <div class="quick-facts">
+          <div><strong>5+</strong><span>監測訊號與時間指標</span></div>
+          <div><strong>6</strong><span>獨立測試模組</span></div>
+          <div><strong>CI</strong><span>GitHub Actions 自動測試</span></div>
+        </div>
+      </div>
+
+      <div class="monitor" aria-label="模擬駕駛監測介面">
+        <div class="monitor-head"><span class="lights"><i></i><i></i><i></i></span><span>STATIC SCENARIO SIMULATOR</span></div>
+        <div class="screen">
+          <div class="grid-lines"></div>
+          <div class="face" id="face"><span class="mouth"></span><span class="pose-line" id="poseLine"></span></div>
+          <div class="hud">
+            <div><span class="state-label" id="stateLabel">MONITORING</span></div>
+            <span class="hud-time">T+00:42</span>
+            <div></div>
+            <div class="metrics">
+              <div class="metric"><span>EAR</span><strong id="ear">0.31</strong></div>
+              <div class="metric"><span>MAR</span><strong id="mar">0.42</strong></div>
+              <div class="metric"><span>PERCLOS</span><strong id="perclos">0.12</strong></div>
+              <div class="metric"><span>HEAD P/Y</span><strong id="head">2° / 4°</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="scenario-bar" aria-label="切換模擬情境">
+          <button class="active" data-state="monitoring">正常監測</button>
+          <button data-state="drowsy">疲勞閉眼</button>
+          <button data-state="distracted">離路分心</button>
+          <button data-state="missing">無臉部</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="signals">
+      <div class="wrap">
+        <div class="section-head">
+          <div><span class="eyebrow">Signals</span><h2>不只是一個 EAR 門檻</h2></div>
+          <p>原型把幾何量測、時間視窗、個人基準與事件狀態分開處理，讓核心邏輯不依賴攝影機 FPS，也能在沒有鏡頭的環境下測試。</p>
+        </div>
+        <div class="card-grid">
+          <article class="card"><span class="num">01</span><h3>EAR</h3><p>以雙眼六點幾何比例估計閉眼狀態，並在完整「閉眼 → 睜眼」週期後計算一次眨眼。</p></article>
+          <article class="card"><span class="num">02</span><h3>MAR</h3><p>追蹤嘴部張開比例及持續時間，避免把單一影格誤判成哈欠事件。</p></article>
+          <article class="card"><span class="num">03</span><h3>PERCLOS</h3><p>在滑動視窗中，以有效觀測秒數計算閉眼時間比例；漏偵測期間不會被當作正常或閉眼。</p></article>
+          <article class="card"><span class="num">04</span><h3>Head Pose</h3><p>透過六個臉部特徵點與 solvePnP 估計粗略 pitch／yaw，作為離路注意力代理訊號。</p></article>
+          <article class="card"><span class="num">05</span><h3>Personal Calibration</h3><p>啟動時以中位數建立個人的 EAR、MAR 與正面角度基準，降低固定門檻造成的個體差異。</p></article>
+          <article class="card"><span class="num">06</span><h3>Tiered Alerts</h3><p>依閉眼時間區分 MICROSLEEP、SLEEP 與 UNRESPONSIVE，並加入警示冷卻避免每幀重播。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="architecture">
+      <div class="wrap">
+        <div class="section-head">
+          <div><span class="eyebrow">Architecture</span><h2>從影像到可驗證事件</h2></div>
+          <p>介面與攝影機屬於外層整合；幾何、時間統計、狀態轉換與紀錄功能維持為可獨立測試的模組。</p>
+        </div>
+        <div class="pipeline">
+          <div class="step"><small>STEP 01</small><strong>Camera frame</strong><span>本機攝影機影像</span></div>
+          <div class="step"><small>STEP 02</small><strong>68 landmarks</strong><span>Dlib 臉部特徵點</span></div>
+          <div class="step"><small>STEP 03</small><strong>Metrics</strong><span>EAR、MAR、Head pose</span></div>
+          <div class="step"><small>STEP 04</small><strong>Temporal state</strong><span>PERCLOS、持續時間、校正</span></div>
+          <div class="step"><small>STEP 05</small><strong>Alert + log</strong><span>分級狀態、音效、CSV</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <div class="wrap">
+        <div class="section-head">
+          <div><span class="eyebrow">Engineering evidence</span><h2>可從 repository 核對的成果</h2></div>
+          <p>下列內容都有對應原始碼、測試或 GitHub Actions 紀錄；本頁不宣稱尚未完成的道路安全準確率。</p>
+        </div>
+        <div class="evidence">
+          <article class="evidence-panel">
+            <h3>主要貢獻</h3>
+            <div class="checklist">
+              <div class="check"><div><strong>重構原始研究原型</strong><span>把單檔程式拆分為監測、幾何、狀態、時間指標、頭部姿態與紀錄模組。</span></div></div>
+              <div class="check"><div><strong>修正時間與事件邏輯</strong><span>眨眼只在重新睜眼時成立，長時間閉眼使用單調時鐘，而非假設固定 FPS。</span></div></div>
+              <div class="check"><div><strong>加入測試與 CI</strong><span>無攝影機、Dlib 模型或個人影像，也能驗證核心數學與狀態邊界。</span></div></div>
+              <div class="check"><div><strong>加入研究紀錄與隱私邊界</strong><span>量測輸出為本機 CSV；截圖與個人影像預設排除於版本控制。</span></div></div>
+            </div>
+          </article>
+          <aside class="evidence-panel">
+            <h3>Repository signals</h3>
+            <div class="result-stack">
+              <div class="result"><span>Unit test workflow</span><strong>Passing</strong></div>
+              <div class="result"><span>Source modules</span><strong>6</strong></div>
+              <div class="result"><span>Test modules</span><strong>6</strong></div>
+              <div class="result"><span>Image processing</span><strong>Local only</strong></div>
+            </div>
+            <div class="actions"><a class="button" href="https://github.com/s960137/driver-drowsiness-detection/actions/workflows/tests.yml">查看 CI 紀錄</a></div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap limits">
+        <span class="eyebrow">Safety boundary</span>
+        <h2>研究展示，不是車用安全產品</h2>
+        <ul>
+          <li>尚未使用真實道路、多使用者與不同光線條件的標註資料驗證。</li>
+          <li>目前頭部方向是離路注意力的代理訊號，不是精確眼球視線追蹤。</li>
+          <li>Dlib 68 點模型及其訓練資料具有商業使用限制，正式產品需要重新選型。</li>
+          <li>要投入道路使用，仍需評估 precision、recall、每小時誤報、警示延遲、夜間及遮擋表現。</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <div><strong>Driver Drowsiness Detection</strong><br>Static portfolio showcase for a research prototype.</div>
+      <a class="button" href="https://github.com/s960137/driver-drowsiness-detection">Repository ↗</a>
+    </div>
+  </footer>
+
+  <script>
+    const scenarios = {
+      monitoring: { label: "MONITORING", color: "var(--green)", ear: "0.31", mar: "0.42", perclos: "0.12", head: "2° / 4°", face: 1, rotate: 4, eye: 8, mouth: 9 },
+      drowsy: { label: "MICROSLEEP", color: "var(--red)", ear: "0.16", mar: "0.39", perclos: "0.46", head: "4° / 6°", face: 1, rotate: 6, eye: 1, mouth: 9 },
+      distracted: { label: "DISTRACTED", color: "var(--amber)", ear: "0.29", mar: "0.44", perclos: "0.18", head: "3° / 31°", face: 1, rotate: 31, eye: 8, mouth: 9 },
+      missing: { label: "NO FACE", color: "var(--muted)", ear: "—", mar: "—", perclos: "PAUSED", head: "—", face: .12, rotate: 0, eye: 8, mouth: 9 }
+    };
+
+    document.querySelectorAll("[data-state]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const state = scenarios[button.dataset.state];
+        document.querySelectorAll("[data-state]").forEach((item) => item.classList.toggle("active", item === button));
+        const label = document.querySelector("#stateLabel");
+        label.textContent = state.label;
+        label.style.color = state.color;
+        document.querySelector("#ear").textContent = state.ear;
+        document.querySelector("#mar").textContent = state.mar;
+        document.querySelector("#perclos").textContent = state.perclos;
+        document.querySelector("#head").textContent = state.head;
+        document.querySelector("#face").style.opacity = state.face;
+        document.querySelector("#poseLine").style.transform = `rotate(${state.rotate}deg)`;
+        document.querySelector(".mouth").style.height = `${state.mouth}px`;
+        document.querySelector(".face").classList.toggle("eyes-closed", state.eye <= 1);
+      });
+    });
+  </script>
+  <style>.face.eyes-closed::before,.face.eyes-closed::after{height:1px}</style>
+</body>
+</html>
+
