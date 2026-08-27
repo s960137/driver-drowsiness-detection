@@ -4,13 +4,13 @@
 
 [開啟demo頁面](https://s960137.github.io/driver-drowsiness-detection/) · [查看demo頁原始檔](docs/index.html)
 
-> 展示頁提供模擬情境與自願啟用的瀏覽器鏡頭試用；影像只在當前裝置即時分析，不保存或上傳。啟用 GitHub Pages 時請將來源設為 `main` 分支的 `/docs`。
+> 展示頁提供瀏覽器鏡頭試用；影像只在當前裝置即時分析，不保存或上傳。。
 
-## 瀏覽器展示頁
+## 瀏覽器demo
 
-開啟展示頁後可選擇「情境動畫」或「鏡頭試用」。鏡頭模式使用 MediaPipe 瀏覽器模型計算近似 EAR／MAR，先以 3 秒中性表情建立個人門檻，再依時間判斷事件。`MAR OPEN` 只在 MAR 高於個人門檻時累計；持續達 0.8 秒才顯示 `YAWN DETECTED`，單一高值影格只會短暫顯示 `YAWN PENDING`。
+開啟頁面後鏡頭模式使用 MediaPipe 瀏覽器模型計算近似 EAR／MAR，先以 3 秒中性表情建立個人門檻，再依時間判斷事件。`MAR OPEN` 只在 MAR 高於個人門檻時累計；持續達 0.8 秒才顯示 `YAWN DETECTED`，單一高值影格只會短暫顯示 `YAWN PENDING`。
 
-瀏覽器試用與 Python／Dlib 主程式是兩套前端整合：網頁適合免安裝體驗，但量測結果不可直接當作主程式驗證資料。鏡頭 API 需要 HTTPS 或 localhost，首次啟用也需要下載臉部模型。
+瀏覽器試用與 Python／Dlib 主程式是兩套前端整合：網頁量測結果不可直接當作主程式驗證資料。鏡頭 API 需要 HTTPS 或 localhost，首次啟用也需要下載臉部模型。
 
 以攝影機即時偵測駕駛狀態，結合眼睛長寬比（EAR）、嘴巴長寬比（MAR）、時間加權 PERCLOS、頭部姿態與眨眼率，示範疲勞、闔眼、睡著無反應警示。
 
