@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Driver Drowsiness Detection research prototype showcase: EAR, MAR, PERCLOS, head pose, calibration, testing, and safety limitations.">
-  <title>Driver Drowsiness Detection｜Static Showcase</title>
+  <title>Driver Drowsiness Detection｜Live Camera Demo</title>
   <style>
     :root {
       color-scheme: dark;
@@ -36,6 +36,7 @@
 
     a { color: inherit; }
     button { font: inherit; }
+    [hidden] { display: none !important; }
     .wrap { width: min(1160px, calc(100% - 36px)); margin: 0 auto; }
 
     .notice {
@@ -124,11 +125,14 @@
       box-shadow: var(--shadow);
     }
 
-    .monitor-head { display: flex; justify-content: space-between; align-items: center; padding: 13px 16px; background: #101f2b; border-bottom: 1px solid var(--line); }
+    .monitor-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 10px 12px 10px 16px; background: #101f2b; border-bottom: 1px solid var(--line); }
     .lights { display: flex; gap: 7px; }
     .lights i { width: 8px; height: 8px; border-radius: 50%; background: #324756; }
     .lights i:first-child { background: var(--red); }
     .monitor-head span { color: var(--muted); font-size: .72rem; letter-spacing: .08em; }
+    .monitor-mode { display: flex; gap: 5px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; background: #08131c; }
+    .monitor-mode button { padding: 5px 9px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; font-size: .67rem; }
+    .monitor-mode button.active { background: var(--cyan); color: #06131c; font-weight: 850; }
 
     .screen { position: relative; min-height: 370px; padding: 20px; overflow: hidden; background: linear-gradient(145deg, #0a1924, #071018); }
     .grid-lines { position: absolute; inset: 0; opacity: .18; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 36px 36px; }
@@ -149,8 +153,19 @@
     .face::after { right: 28px; }
     .mouth { position: absolute; left: 50%; bottom: 42px; width: 52px; height: 9px; transform: translateX(-50%); border-bottom: 2px solid var(--cyan); border-radius: 50%; transition: height .25s; }
     .pose-line { position: absolute; width: 86px; height: 1px; left: 50%; top: 50%; background: var(--cyan); transform-origin: left center; opacity: .65; }
+    .face.yawning .mouth { border: 2px solid var(--red); background: rgba(255,125,130,.08); }
 
-    .hud { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr auto; gap: 16px; }
+    .camera-stage { position: absolute; inset: 0; z-index: 1; background: #02080d; }
+    .camera-stage video, .camera-stage canvas { position: absolute; width: 100%; height: 100%; inset: 0; object-fit: cover; transform: scaleX(-1); }
+    .camera-stage canvas { pointer-events: none; }
+    .camera-empty { position: absolute; z-index: 3; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 28px; text-align: center; background: radial-gradient(circle, rgba(18,34,48,.94), rgba(7,16,24,.98)); }
+    .camera-empty strong { font-size: 1rem; }
+    .camera-empty span { max-width: 340px; color: var(--muted); font-size: .76rem; }
+    .camera-empty button { padding: 9px 14px; border: 0; border-radius: 9px; background: var(--cyan); color: #06131c; cursor: pointer; font-weight: 850; }
+    .privacy-chip { position: absolute; right: 12px; bottom: 12px; z-index: 4; padding: 5px 8px; border: 1px solid rgba(105,226,161,.32); border-radius: 999px; background: rgba(4,12,18,.78); color: var(--green); font: 750 .58rem ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .monitor.live .face, .monitor.live .grid-lines { display: none; }
+
+    .hud { position: relative; z-index: 5; display: grid; grid-template-columns: 1fr auto; gap: 16px; pointer-events: none; }
     .state-label { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-size: .82rem; font-weight: 850; letter-spacing: .08em; }
     .state-label::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 18px currentColor; }
     .hud-time { color: var(--muted); font: 700 .76rem ui-monospace, SFMono-Regular, Consolas, monospace; }
@@ -162,6 +177,9 @@
     .scenario-bar { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); background: #0c1923; }
     .scenario-bar button { flex: 1; padding: 9px 8px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; font-size: .72rem; }
     .scenario-bar button.active { color: #06131c; background: var(--cyan); border-color: var(--cyan); font-weight: 800; }
+    .camera-bar { align-items: center; }
+    .camera-bar span { flex: 2.4; color: var(--muted); font-size: .68rem; }
+    .camera-bar button:disabled { cursor: not-allowed; opacity: .42; }
 
     main section { padding: 84px 0; }
     .section-head { display: grid; grid-template-columns: .72fr 1.28fr; gap: 42px; align-items: end; margin-bottom: 34px; }
@@ -222,12 +240,13 @@
       .metrics { width: 155px; }
       .scenario-bar { overflow-x: auto; }
       .scenario-bar button { min-width: 92px; }
+      .camera-bar span { min-width: 190px; }
       .footer-inner { align-items: flex-start; flex-direction: column; }
     }
   </style>
 </head>
 <body>
-  <div class="notice">靜態互動展示｜數值為模擬情境，不會存取攝影機，也不代表安全或醫療認證</div>
+  <div class="notice">情境動畫＋瀏覽器鏡頭試用｜啟用後影像只在本機分析，不保存或上傳，也不代表安全或醫療認證</div>
 
   <header class="wrap">
     <nav>
@@ -244,9 +263,10 @@
       <div>
         <span class="eyebrow">Computer vision research prototype</span>
         <h1>Driver <span>Drowsiness</span> Detection</h1>
-        <p class="hero-copy">結合臉部特徵、個人化校正與時間加權指標，示範疲勞、長時間閉眼及離路注意力警示。專案著重可測試的狀態邏輯，而非只在每一幀套用固定門檻。</p>
+        <p class="hero-copy">結合臉部特徵、個人化校正與時間加權指標，示範疲勞、長時間閉眼、持續哈欠及離路注意力警示。專案著重可測試的狀態邏輯，而非只在每一幀套用固定門檻。</p>
         <div class="actions">
-          <a class="button primary" href="https://github.com/s960137/driver-drowsiness-detection">查看原始碼</a>
+          <button class="button primary" id="heroCameraButton" type="button">啟用鏡頭試用</button>
+          <a class="button" href="https://github.com/s960137/driver-drowsiness-detection">查看原始碼</a>
           <a class="button" href="https://github.com/s960137/driver-drowsiness-detection#測試">查看測試說明</a>
         </div>
         <div class="quick-facts">
@@ -256,28 +276,51 @@
         </div>
       </div>
 
-      <div class="monitor" aria-label="模擬駕駛監測介面">
-        <div class="monitor-head"><span class="lights"><i></i><i></i><i></i></span><span>STATIC SCENARIO SIMULATOR</span></div>
+      <div class="monitor" id="monitor" aria-label="駕駛監測情境與鏡頭試用介面">
+        <div class="monitor-head">
+          <span class="lights"><i></i><i></i><i></i></span>
+          <div class="monitor-mode" role="tablist" aria-label="展示模式">
+            <button class="active" id="scenarioModeButton" type="button" role="tab" aria-selected="true">情境動畫</button>
+            <button id="cameraModeButton" type="button" role="tab" aria-selected="false">鏡頭試用</button>
+          </div>
+        </div>
         <div class="screen">
           <div class="grid-lines"></div>
           <div class="face" id="face"><span class="mouth"></span><span class="pose-line" id="poseLine"></span></div>
+          <div class="camera-stage" id="cameraStage" hidden>
+            <video id="cameraVideo" playsinline muted aria-label="本機攝影機即時畫面"></video>
+            <canvas id="cameraCanvas" aria-hidden="true"></canvas>
+            <div class="camera-empty" id="cameraEmpty">
+              <strong id="cameraPromptTitle">鏡頭尚未啟用</strong>
+              <span id="cameraPromptText">按下啟用後才會請求權限。首次使用需下載瀏覽器臉部模型，影像不會離開此裝置。</span>
+              <button id="cameraStartOverlay" type="button">啟用本機鏡頭</button>
+            </div>
+            <span class="privacy-chip">LOCAL · NOT RECORDED</span>
+          </div>
           <div class="hud">
             <div><span class="state-label" id="stateLabel">MONITORING</span></div>
-            <span class="hud-time">T+00:42</span>
+            <span class="hud-time" id="hudTime">T+00:42</span>
             <div></div>
             <div class="metrics">
               <div class="metric"><span>EAR</span><strong id="ear">0.31</strong></div>
               <div class="metric"><span>MAR</span><strong id="mar">0.42</strong></div>
+              <div class="metric"><span>MAR OPEN</span><strong id="marDuration">0.00s</strong></div>
               <div class="metric"><span>PERCLOS</span><strong id="perclos">0.12</strong></div>
               <div class="metric"><span>HEAD P/Y</span><strong id="head">2° / 4°</strong></div>
             </div>
           </div>
         </div>
-        <div class="scenario-bar" aria-label="切換模擬情境">
+        <div class="scenario-bar" id="scenarioBar" aria-label="切換模擬情境">
           <button class="active" data-state="monitoring">正常監測</button>
           <button data-state="drowsy">疲勞閉眼</button>
+          <button data-state="yawn">持續哈欠</button>
           <button data-state="distracted">離路分心</button>
           <button data-state="missing">無臉部</button>
+        </div>
+        <div class="scenario-bar camera-bar" id="cameraBar" hidden aria-label="鏡頭控制">
+          <button id="cameraStartButton" type="button">啟用鏡頭</button>
+          <button id="cameraStopButton" type="button" disabled>停止鏡頭</button>
+          <span id="cameraHint">需 HTTPS 或 localhost；首次啟用會下載約數 MB 的臉部模型。</span>
         </div>
       </div>
     </div>
@@ -292,7 +335,7 @@
         </div>
         <div class="card-grid">
           <article class="card"><span class="num">01</span><h3>EAR</h3><p>以雙眼六點幾何比例估計閉眼狀態，並在完整「閉眼 → 睜眼」週期後計算一次眨眼。</p></article>
-          <article class="card"><span class="num">02</span><h3>MAR</h3><p>追蹤嘴部張開比例及持續時間，避免把單一影格誤判成哈欠事件。</p></article>
+          <article class="card"><span class="num">02</span><h3>MAR + 持續時間</h3><p>嘴部張開比例超過個人門檻後才開始累時；持續達 0.8 秒才成立哈欠，單一高 MAR 影格只顯示待確認。</p></article>
           <article class="card"><span class="num">03</span><h3>PERCLOS</h3><p>在滑動視窗中，以有效觀測秒數計算閉眼時間比例；漏偵測期間不會被當作正常或閉眼。</p></article>
           <article class="card"><span class="num">04</span><h3>Head Pose</h3><p>透過六個臉部特徵點與 solvePnP 估計粗略 pitch／yaw，作為離路注意力代理訊號。</p></article>
           <article class="card"><span class="num">05</span><h3>Personal Calibration</h3><p>啟動時以中位數建立個人的 EAR、MAR 與正面角度基準，降低固定門檻造成的個體差異。</p></article>
@@ -305,11 +348,11 @@
       <div class="wrap">
         <div class="section-head">
           <div><span class="eyebrow">Architecture</span><h2>從影像到可驗證事件</h2></div>
-          <p>介面與攝影機屬於外層整合；幾何、時間統計、狀態轉換與紀錄功能維持為可獨立測試的模組。</p>
+          <p>Python 主程式使用 Dlib；免安裝的網頁試用改用 MediaPipe 瀏覽器模型。兩者共用相同的時間判定概念，但量測值不可直接互換。</p>
         </div>
         <div class="pipeline">
           <div class="step"><small>STEP 01</small><strong>Camera frame</strong><span>本機攝影機影像</span></div>
-          <div class="step"><small>STEP 02</small><strong>68 landmarks</strong><span>Dlib 臉部特徵點</span></div>
+          <div class="step"><small>STEP 02</small><strong>Face landmarks</strong><span>Dlib 68 點／MediaPipe Web</span></div>
           <div class="step"><small>STEP 03</small><strong>Metrics</strong><span>EAR、MAR、Head pose</span></div>
           <div class="step"><small>STEP 04</small><strong>Temporal state</strong><span>PERCLOS、持續時間、校正</span></div>
           <div class="step"><small>STEP 05</small><strong>Alert + log</strong><span>分級狀態、音效、CSV</span></div>
@@ -363,36 +406,486 @@
 
   <footer>
     <div class="wrap footer-inner">
-      <div><strong>Driver Drowsiness Detection</strong><br>Static portfolio showcase for a research prototype.</div>
+      <div><strong>Driver Drowsiness Detection</strong><br>Interactive scenarios and a local-only camera trial.</div>
       <a class="button" href="https://github.com/s960137/driver-drowsiness-detection">Repository ↗</a>
     </div>
   </footer>
 
-  <script>
-    const scenarios = {
-      monitoring: { label: "MONITORING", color: "var(--green)", ear: "0.31", mar: "0.42", perclos: "0.12", head: "2° / 4°", face: 1, rotate: 4, eye: 8, mouth: 9 },
-      drowsy: { label: "MICROSLEEP", color: "var(--red)", ear: "0.16", mar: "0.39", perclos: "0.46", head: "4° / 6°", face: 1, rotate: 6, eye: 1, mouth: 9 },
-      distracted: { label: "DISTRACTED", color: "var(--amber)", ear: "0.29", mar: "0.44", perclos: "0.18", head: "3° / 31°", face: 1, rotate: 31, eye: 8, mouth: 9 },
-      missing: { label: "NO FACE", color: "var(--muted)", ear: "—", mar: "—", perclos: "PAUSED", head: "—", face: .12, rotate: 0, eye: 8, mouth: 9 }
+  <script type="module">
+    const MEDIAPIPE_VERSION = "0.10.22-rc.20250304";
+    const MEDIAPIPE_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VERSION}`;
+    const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+    const YAWN_SECONDS = 0.8;
+    const PERCLOS_WINDOW_MS = 60_000;
+    const PERCLOS_MIN_OBSERVATION_MS = 20_000;
+
+    const elements = {
+      monitor: document.querySelector("#monitor"),
+      scenarioMode: document.querySelector("#scenarioModeButton"),
+      cameraMode: document.querySelector("#cameraModeButton"),
+      scenarioBar: document.querySelector("#scenarioBar"),
+      cameraBar: document.querySelector("#cameraBar"),
+      cameraStage: document.querySelector("#cameraStage"),
+      cameraVideo: document.querySelector("#cameraVideo"),
+      cameraCanvas: document.querySelector("#cameraCanvas"),
+      cameraEmpty: document.querySelector("#cameraEmpty"),
+      cameraPromptTitle: document.querySelector("#cameraPromptTitle"),
+      cameraPromptText: document.querySelector("#cameraPromptText"),
+      cameraStartOverlay: document.querySelector("#cameraStartOverlay"),
+      cameraStart: document.querySelector("#cameraStartButton"),
+      cameraStop: document.querySelector("#cameraStopButton"),
+      cameraHint: document.querySelector("#cameraHint"),
+      stateLabel: document.querySelector("#stateLabel"),
+      hudTime: document.querySelector("#hudTime"),
+      ear: document.querySelector("#ear"),
+      mar: document.querySelector("#mar"),
+      marDuration: document.querySelector("#marDuration"),
+      perclos: document.querySelector("#perclos"),
+      head: document.querySelector("#head"),
+      face: document.querySelector("#face"),
+      mouth: document.querySelector(".mouth"),
+      poseLine: document.querySelector("#poseLine")
     };
 
-    document.querySelectorAll("[data-state]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const state = scenarios[button.dataset.state];
-        document.querySelectorAll("[data-state]").forEach((item) => item.classList.toggle("active", item === button));
-        const label = document.querySelector("#stateLabel");
-        label.textContent = state.label;
-        label.style.color = state.color;
-        document.querySelector("#ear").textContent = state.ear;
-        document.querySelector("#mar").textContent = state.mar;
-        document.querySelector("#perclos").textContent = state.perclos;
-        document.querySelector("#head").textContent = state.head;
-        document.querySelector("#face").style.opacity = state.face;
-        document.querySelector("#poseLine").style.transform = `rotate(${state.rotate}deg)`;
-        document.querySelector(".mouth").style.height = `${state.mouth}px`;
-        document.querySelector(".face").classList.toggle("eyes-closed", state.eye <= 1);
+    const scenarios = {
+      monitoring: { label: "MONITORING", color: "var(--green)", ear: "0.31", mar: "0.42", marDuration: "0.00s", perclos: "0.12", head: "2° / 4°", face: 1, rotate: 4, eye: 8, mouth: 9 },
+      drowsy: { label: "MICROSLEEP", color: "var(--red)", ear: "0.16", mar: "0.39", marDuration: "0.00s", perclos: "0.46", head: "4° / 6°", face: 1, rotate: 6, eye: 1, mouth: 9 },
+      distracted: { label: "DISTRACTED", color: "var(--amber)", ear: "0.29", mar: "0.44", marDuration: "0.00s", perclos: "0.18", head: "3° / 31°", face: 1, rotate: 31, eye: 8, mouth: 9 },
+      missing: { label: "NO FACE", color: "var(--muted)", ear: "—", mar: "—", marDuration: "—", perclos: "PAUSED", head: "—", face: .12, rotate: 0, eye: 8, mouth: 9 }
+    };
+
+    let scenarioFrame = 0;
+    let faceLandmarker = null;
+    let cameraStream = null;
+    let cameraFrame = 0;
+    let lastVideoTime = -1;
+    let lastDetectionAt = 0;
+
+    const live = {
+      startedAt: 0,
+      calibrationStartedAt: null,
+      calibrationObservedMs: 0,
+      calibrationLastAt: null,
+      calibrated: false,
+      earSamples: [],
+      marSamples: [],
+      pitchSamples: [],
+      yawSamples: [],
+      earThreshold: 0.23,
+      marThreshold: 0.75,
+      pitchOffset: 0,
+      yawOffset: 0,
+      eyesClosedAt: null,
+      mouthOpenedAt: null,
+      headAwayAt: null,
+      previousValidAt: null,
+      previousClosed: false,
+      perclosIntervals: []
+    };
+
+    function median(values) {
+      const sorted = [...values].sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
+    function distance(first, second, width = 1, height = 1) {
+      return Math.hypot((first.x - second.x) * width, (first.y - second.y) * height);
+    }
+
+    function eyeAspectRatio(points, indexes, width, height) {
+      const horizontal = distance(points[indexes[0]], points[indexes[3]], width, height);
+      const verticalOne = distance(points[indexes[1]], points[indexes[5]], width, height);
+      const verticalTwo = distance(points[indexes[2]], points[indexes[4]], width, height);
+      return horizontal > 0 ? (verticalOne + verticalTwo) / (2 * horizontal) : 0;
+    }
+
+    function mouthAspectRatio(points, width, height) {
+      const horizontal = distance(points[61], points[291], width, height);
+      const verticalOne = distance(points[82], points[87], width, height);
+      const verticalTwo = distance(points[13], points[14], width, height);
+      const verticalThree = distance(points[312], points[317], width, height);
+      return horizontal > 0 ? (verticalOne + verticalTwo + verticalThree) / (2 * horizontal) : 0;
+    }
+
+    function coarseHeadPose(points, width, height) {
+      const leftEye = points[33];
+      const rightEye = points[263];
+      const nose = points[1];
+      const eyeSpan = distance(leftEye, rightEye, width, height) || 1;
+      const middleX = (leftEye.x + rightEye.x) / 2;
+      const middleY = (leftEye.y + rightEye.y) / 2;
+      return {
+        yaw: ((nose.x - middleX) * width / eyeSpan) * 90,
+        pitch: ((nose.y - middleY) * height / eyeSpan) * 90
+      };
+    }
+
+    function setStatus(label, color) {
+      elements.stateLabel.textContent = label;
+      elements.stateLabel.style.color = color;
+    }
+
+    function updateHud(state) {
+      setStatus(state.label, state.color);
+      elements.ear.textContent = state.ear;
+      elements.mar.textContent = state.mar;
+      elements.marDuration.textContent = state.marDuration;
+      elements.perclos.textContent = state.perclos;
+      elements.head.textContent = state.head;
+    }
+
+    function stopScenarioAnimation() {
+      cancelAnimationFrame(scenarioFrame);
+      scenarioFrame = 0;
+      elements.face.classList.remove("yawning");
+    }
+
+    function applyStaticScenario(name) {
+      stopScenarioAnimation();
+      const state = scenarios[name];
+      updateHud(state);
+      elements.face.style.opacity = state.face;
+      elements.poseLine.style.transform = `rotate(${state.rotate}deg)`;
+      elements.mouth.style.height = `${state.mouth}px`;
+      elements.face.classList.toggle("eyes-closed", state.eye <= 1);
+    }
+
+    function runYawnScenario() {
+      stopScenarioAnimation();
+      elements.face.style.opacity = 1;
+      elements.face.classList.remove("eyes-closed");
+      elements.face.classList.add("yawning");
+      elements.poseLine.style.transform = "rotate(3deg)";
+      const startedAt = performance.now();
+
+      function animate(now) {
+        const elapsed = (now - startedAt) % 2_800;
+        const opening = Math.min(Math.max(elapsed / 420, 0), 1);
+        const closing = elapsed > 1_900 ? Math.max(0, 1 - (elapsed - 1_900) / 420) : 1;
+        const openness = Math.min(opening, closing);
+        const openDuration = elapsed >= 420 && elapsed < 2_320 ? (elapsed - 420) / 1_000 : 0;
+        const confirmed = openDuration >= YAWN_SECONDS;
+        const pending = openDuration > 0 && !confirmed;
+
+        updateHud({
+          label: confirmed ? "YAWN DETECTED" : pending ? "YAWN PENDING" : "MONITORING",
+          color: confirmed ? "var(--red)" : pending ? "var(--amber)" : "var(--green)",
+          ear: "0.30",
+          mar: (0.42 + openness * 0.44).toFixed(2),
+          marDuration: openDuration > 0 ? `${openDuration.toFixed(2)}s` : "0.00s",
+          perclos: "0.14",
+          head: "3° / 5°"
+        });
+        elements.mouth.style.height = `${9 + openness * 46}px`;
+        scenarioFrame = requestAnimationFrame(animate);
+      }
+      scenarioFrame = requestAnimationFrame(animate);
+    }
+
+    function selectScenario(button) {
+      document.querySelectorAll("[data-state]").forEach((item) => item.classList.toggle("active", item === button));
+      if (button.dataset.state === "yawn") runYawnScenario();
+      else applyStaticScenario(button.dataset.state);
+    }
+
+    function setMode(mode) {
+      const camera = mode === "camera";
+      elements.monitor.classList.toggle("live", camera);
+      elements.scenarioMode.classList.toggle("active", !camera);
+      elements.cameraMode.classList.toggle("active", camera);
+      elements.scenarioMode.setAttribute("aria-selected", String(!camera));
+      elements.cameraMode.setAttribute("aria-selected", String(camera));
+      elements.scenarioBar.hidden = camera;
+      elements.cameraBar.hidden = !camera;
+      elements.cameraStage.hidden = !camera;
+      if (camera) {
+        stopScenarioAnimation();
+        if (!cameraStream) {
+          updateHud({ label: "CAMERA OFF", color: "var(--muted)", ear: "—", mar: "—", marDuration: "—", perclos: "—", head: "—" });
+          elements.hudTime.textContent = "LOCAL MODE";
+        }
+      } else {
+        stopCamera();
+        elements.hudTime.textContent = "T+00:42";
+        const active = document.querySelector("[data-state].active") || document.querySelector("[data-state]");
+        selectScenario(active);
+      }
+    }
+
+    function resetLiveState(now) {
+      Object.assign(live, {
+        startedAt: now,
+        calibrationStartedAt: null,
+        calibrationObservedMs: 0,
+        calibrationLastAt: null,
+        calibrated: false,
+        earSamples: [],
+        marSamples: [],
+        pitchSamples: [],
+        yawSamples: [],
+        earThreshold: 0.23,
+        marThreshold: 0.75,
+        pitchOffset: 0,
+        yawOffset: 0,
+        eyesClosedAt: null,
+        mouthOpenedAt: null,
+        headAwayAt: null,
+        previousValidAt: null,
+        previousClosed: false,
+        perclosIntervals: []
       });
+    }
+
+    async function loadFaceLandmarker() {
+      if (faceLandmarker) return;
+      elements.cameraPromptTitle.textContent = "正在載入臉部模型…";
+      elements.cameraPromptText.textContent = "模型只用於此頁面的本機即時分析，首次載入需要數秒。";
+      const visionTasks = await import(MEDIAPIPE_BASE);
+      const vision = await visionTasks.FilesetResolver.forVisionTasks(`${MEDIAPIPE_BASE}/wasm`);
+      const options = {
+        baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        minFaceDetectionConfidence: 0.5,
+        minFacePresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5
+      };
+      try {
+        faceLandmarker = await visionTasks.FaceLandmarker.createFromOptions(vision, options);
+      } catch (gpuError) {
+        console.warn("GPU delegate unavailable; falling back to CPU.", gpuError);
+        options.baseOptions.delegate = "CPU";
+        faceLandmarker = await visionTasks.FaceLandmarker.createFromOptions(vision, options);
+      }
+    }
+
+    function cameraErrorMessage(error) {
+      if (!window.isSecureContext) return "鏡頭 API 需要 HTTPS 或 localhost，請從 GitHub Pages 開啟。";
+      if (error?.name === "NotAllowedError") return "鏡頭權限被拒絕；請在瀏覽器網址列允許相機後重試。";
+      if (error?.name === "NotFoundError") return "找不到可用鏡頭，請確認裝置已連接且未被停用。";
+      if (error?.name === "NotReadableError") return "鏡頭正被其他程式使用，請關閉該程式後重試。";
+      return "無法啟用鏡頭或載入模型，請確認網路連線後重試。";
+    }
+
+    async function startCamera() {
+      setMode("camera");
+      if (cameraStream) return;
+      elements.cameraEmpty.hidden = false;
+      elements.cameraStartOverlay.hidden = true;
+      elements.cameraStart.disabled = true;
+      setStatus("LOADING", "var(--amber)");
+
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error("camera API unavailable");
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        elements.cameraVideo.srcObject = cameraStream;
+        await elements.cameraVideo.play();
+        await loadFaceLandmarker();
+        resetLiveState(performance.now());
+        elements.cameraEmpty.hidden = true;
+        elements.cameraStop.disabled = false;
+        elements.cameraHint.textContent = "正在本機分析；正對鏡頭、自然睜眼並閉嘴 3 秒完成網頁校正。";
+        cameraFrame = requestAnimationFrame(analyzeCameraFrame);
+      } catch (error) {
+        console.error(error);
+        if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
+        cameraStream = null;
+        elements.cameraPromptTitle.textContent = "鏡頭未啟用";
+        elements.cameraPromptText.textContent = cameraErrorMessage(error);
+        elements.cameraStartOverlay.textContent = "重新嘗試";
+        elements.cameraStartOverlay.hidden = false;
+        elements.cameraStart.disabled = false;
+        elements.cameraStop.disabled = true;
+        setStatus("CAMERA ERROR", "var(--red)");
+      }
+    }
+
+    function stopCamera() {
+      cancelAnimationFrame(cameraFrame);
+      cameraFrame = 0;
+      if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop());
+      cameraStream = null;
+      elements.cameraVideo.srcObject = null;
+      elements.cameraCanvas.getContext("2d").clearRect(0, 0, elements.cameraCanvas.width, elements.cameraCanvas.height);
+      elements.cameraEmpty.hidden = false;
+      elements.cameraPromptTitle.textContent = "鏡頭尚未啟用";
+      elements.cameraPromptText.textContent = "按下啟用後才會請求權限。影像只在這個瀏覽器分頁內分析。";
+      elements.cameraStartOverlay.textContent = "啟用本機鏡頭";
+      elements.cameraStartOverlay.hidden = false;
+      elements.cameraStart.disabled = false;
+      elements.cameraStop.disabled = true;
+      elements.cameraHint.textContent = "需 HTTPS 或 localhost；首次啟用會下載約數 MB 的臉部模型。";
+      if (elements.monitor.classList.contains("live")) {
+        updateHud({ label: "CAMERA OFF", color: "var(--muted)", ear: "—", mar: "—", marDuration: "—", perclos: "—", head: "—" });
+        elements.hudTime.textContent = "LOCAL MODE";
+      }
+    }
+
+    function drawLandmarks(points) {
+      const canvas = elements.cameraCanvas;
+      const video = elements.cameraVideo;
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+      const context = canvas.getContext("2d");
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "rgba(84, 215, 231, .88)";
+      context.lineWidth = Math.max(2, canvas.width / 480);
+      const paths = [
+        [33, 160, 158, 133, 153, 144, 33],
+        [362, 385, 387, 263, 373, 380, 362],
+        [61, 82, 13, 312, 291, 317, 14, 87, 61]
+      ];
+      for (const path of paths) {
+        context.beginPath();
+        path.forEach((index, position) => {
+          const point = points[index];
+          if (position === 0) context.moveTo(point.x * canvas.width, point.y * canvas.height);
+          else context.lineTo(point.x * canvas.width, point.y * canvas.height);
+        });
+        context.stroke();
+      }
+    }
+
+    function updatePerclos(now, closed) {
+      if (live.previousValidAt !== null && now - live.previousValidAt < 500) {
+        live.perclosIntervals.push([live.previousValidAt, now, live.previousClosed]);
+      }
+      live.previousValidAt = now;
+      live.previousClosed = closed;
+      const cutoff = now - PERCLOS_WINDOW_MS;
+      live.perclosIntervals = live.perclosIntervals
+        .filter((interval) => interval[1] > cutoff)
+        .map((interval) => [Math.max(interval[0], cutoff), interval[1], interval[2]]);
+      const observed = live.perclosIntervals.reduce((sum, interval) => sum + interval[1] - interval[0], 0);
+      if (observed < PERCLOS_MIN_OBSERVATION_MS) return null;
+      const closedTime = live.perclosIntervals.reduce((sum, interval) => sum + (interval[2] ? interval[1] - interval[0] : 0), 0);
+      return closedTime / observed;
+    }
+
+    function calibrate(ear, mar, pose, now) {
+      if (live.calibrationStartedAt === null) live.calibrationStartedAt = now;
+      if (live.calibrationLastAt !== null && now - live.calibrationLastAt < 500) {
+        live.calibrationObservedMs += now - live.calibrationLastAt;
+      }
+      live.calibrationLastAt = now;
+      live.earSamples.push(ear);
+      live.marSamples.push(mar);
+      live.pitchSamples.push(pose.pitch);
+      live.yawSamples.push(pose.yaw);
+      const elapsed = live.calibrationObservedMs;
+      if (elapsed >= 3_000 && live.earSamples.length >= 10) {
+        live.earThreshold = median(live.earSamples) * 0.8;
+        live.marThreshold = median(live.marSamples) + 0.25;
+        live.pitchOffset = median(live.pitchSamples);
+        live.yawOffset = median(live.yawSamples);
+        live.calibrated = true;
+        live.previousValidAt = null;
+        setStatus("CALIBRATION COMPLETE", "var(--green)");
+      } else {
+        setStatus(`CALIBRATING ${Math.min(100, Math.round(elapsed / 30))}%`, "var(--cyan)");
+      }
+    }
+
+    function handleFace(points, now) {
+      const width = elements.cameraVideo.videoWidth;
+      const height = elements.cameraVideo.videoHeight;
+      const ear = (
+        eyeAspectRatio(points, [33, 160, 158, 133, 153, 144], width, height) +
+        eyeAspectRatio(points, [362, 385, 387, 263, 373, 380], width, height)
+      ) / 2;
+      const mar = mouthAspectRatio(points, width, height);
+      const pose = coarseHeadPose(points, width, height);
+      drawLandmarks(points);
+      elements.ear.textContent = ear.toFixed(2);
+      elements.mar.textContent = mar.toFixed(2);
+
+      if (!live.calibrated) {
+        calibrate(ear, mar, pose, now);
+        elements.marDuration.textContent = "0.00s";
+        elements.perclos.textContent = "collecting";
+        elements.head.textContent = "calibrating";
+        return;
+      }
+
+      const closed = ear < live.earThreshold;
+      const mouthOpen = mar > live.marThreshold;
+      const pitch = pose.pitch - live.pitchOffset;
+      const yaw = pose.yaw - live.yawOffset;
+      const headAway = Math.abs(pitch) > 20 || Math.abs(yaw) > 25;
+      const perclos = updatePerclos(now, closed);
+
+      if (closed && live.eyesClosedAt === null) live.eyesClosedAt = now;
+      if (!closed) live.eyesClosedAt = null;
+      if (mouthOpen && live.mouthOpenedAt === null) live.mouthOpenedAt = now;
+      if (!mouthOpen) live.mouthOpenedAt = null;
+      if (headAway && live.headAwayAt === null) live.headAwayAt = now;
+      if (!headAway) live.headAwayAt = null;
+
+      const closedSeconds = live.eyesClosedAt === null ? 0 : (now - live.eyesClosedAt) / 1_000;
+      const mouthSeconds = live.mouthOpenedAt === null ? 0 : (now - live.mouthOpenedAt) / 1_000;
+      const awaySeconds = live.headAwayAt === null ? 0 : (now - live.headAwayAt) / 1_000;
+      let label = "MONITORING";
+      let color = "var(--green)";
+
+      if (closedSeconds >= 6) [label, color] = ["UNRESPONSIVE", "var(--red)"];
+      else if (closedSeconds >= 3) [label, color] = ["SLEEP", "var(--red)"];
+      else if (closedSeconds >= 1) [label, color] = ["MICROSLEEP", "var(--red)"];
+      else if (mouthSeconds >= YAWN_SECONDS) [label, color] = ["YAWN DETECTED", "var(--red)"];
+      else if (mouthSeconds > 0) [label, color] = ["YAWN PENDING", "var(--amber)"];
+      else if (awaySeconds >= 3) [label, color] = ["DISTRACTED", "var(--amber)"];
+      else if (perclos !== null && perclos >= 0.4) [label, color] = ["DROWSY", "var(--red)"];
+
+      setStatus(label, color);
+      elements.marDuration.textContent = `${mouthSeconds.toFixed(2)}s`;
+      elements.perclos.textContent = perclos === null ? "collecting" : perclos.toFixed(2);
+      elements.head.textContent = `~${pitch.toFixed(0)}° / ~${yaw.toFixed(0)}°`;
+    }
+
+    function handleMissingFace() {
+      live.previousValidAt = null;
+      live.calibrationLastAt = null;
+      live.eyesClosedAt = null;
+      live.mouthOpenedAt = null;
+      live.headAwayAt = null;
+      elements.cameraCanvas.getContext("2d").clearRect(0, 0, elements.cameraCanvas.width, elements.cameraCanvas.height);
+      updateHud({ label: live.calibrated ? "NO FACE" : "CALIBRATION: NO FACE", color: "var(--amber)", ear: "—", mar: "—", marDuration: "—", perclos: "PAUSED", head: "—" });
+    }
+
+    function analyzeCameraFrame(now) {
+      if (!cameraStream || !faceLandmarker) return;
+      const video = elements.cameraVideo;
+      if (video.readyState >= 2 && video.currentTime !== lastVideoTime && now - lastDetectionAt >= 66) {
+        lastVideoTime = video.currentTime;
+        lastDetectionAt = now;
+        try {
+          const result = faceLandmarker.detectForVideo(video, now);
+          if (result.faceLandmarks?.length) handleFace(result.faceLandmarks[0], now);
+          else handleMissingFace();
+        } catch (error) {
+          console.error(error);
+          setStatus("ANALYSIS ERROR", "var(--red)");
+        }
+      }
+      elements.hudTime.textContent = `T+${((now - live.startedAt) / 1_000).toFixed(1)}s`;
+      cameraFrame = requestAnimationFrame(analyzeCameraFrame);
+    }
+
+    document.querySelectorAll("[data-state]").forEach((button) => {
+      button.addEventListener("click", () => selectScenario(button));
     });
+    elements.scenarioMode.addEventListener("click", () => setMode("scenario"));
+    elements.cameraMode.addEventListener("click", () => setMode("camera"));
+    elements.cameraStart.addEventListener("click", startCamera);
+    elements.cameraStartOverlay.addEventListener("click", startCamera);
+    elements.cameraStop.addEventListener("click", stopCamera);
+    document.querySelector("#heroCameraButton").addEventListener("click", startCamera);
+    window.addEventListener("pagehide", stopCamera);
   </script>
   <style>.face.eyes-closed::before,.face.eyes-closed::after{height:1px}</style>
 </body>
